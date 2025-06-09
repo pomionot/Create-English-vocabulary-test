@@ -1,0 +1,88 @@
+Sub 生成_Click()
+    Dim 単語シート As Worksheet
+    Dim テストシート As Worksheet
+    Dim 答えシート As Worksheet
+    Dim 開始行 As Long, 終了行 As Long
+    Dim 出題数 As Long
+    Dim ランダムIndex As Long
+    Dim i As Long, r As Long
+    Dim 使用済み As Object
+    Dim 出題形式 As String
+    Dim 質問列 As Long, 答え列 As Long
+    Dim 出題タイトル As String, 答えタイトル As String
+
+    ' ▼▼▼ 出題形式の選択 ▼▼▼
+    出題形式 = InputBox("出題形式を選んでください:" & vbCrLf & _
+                         "1: 英語 → 日本語" & vbCrLf & _
+                         "2: 日本語 → 英語", "出題形式選択", "1")
+
+    If 出題形式 <> "1" And 出題形式 <> "2" Then
+        MsgBox "出題形式が不正です。1または2を入力してください。", vbExclamation
+        Exit Sub
+    End If
+
+    ' 列の設定（1=A列: 英語, 2=B列: 日本語）
+    If 出題形式 = "1" Then
+        質問列 = 1 ' 英語を出題
+        答え列 = 2 ' 日本語が答え
+        出題タイトル = "英語 → 日本語"
+        答えタイトル = "答え（日本語）"
+    Else
+        質問列 = 2 ' 日本語を出題
+        答え列 = 1 ' 英語が答え
+        出題タイトル = "日本語 → 英語"
+        答えタイトル = "答え（英語）"
+    End If
+
+    ' ▼▼▼ 範囲と出題数の入力 ▼▼▼
+    開始行 = CLng(InputBox("何番目から出題しますか？", "開始範囲", 1))
+    終了行 = CLng(InputBox("何番目まで出題しますか？", "終了範囲", 10))
+    出題数 = CLng(InputBox("何問出題しますか？", "出題数", 10))
+
+    If 開始行 <= 0 Or 終了行 < 開始行 Or 出題数 <= 0 Or 出題数 > (終了行 - 開始行 + 1) Then
+        MsgBox "入力が不正です。", vbExclamation
+        Exit Sub
+    End If
+
+    ' 単語シートを指定
+    Set 単語シート = ThisWorkbook.Sheets("単語帳")
+
+    ' 出題と答えシート作成
+    Set テストシート = ThisWorkbook.Sheets.Add(After:=Sheets(Sheets.Count))
+    テストシート.Name = "テスト_" & Format(Now, "hhmmss")
+
+    Set 答えシート = ThisWorkbook.Sheets.Add(After:=Sheets(Sheets.Count))
+    答えシート.Name = "答え_" & Format(Now, "hhmmss")
+
+    ' 使用済みリスト
+    Set 使用済み = CreateObject("Scripting.Dictionary")
+
+    Randomize
+
+    ' 出題ループ
+    r = 1
+    Do While r <= 出題数
+        ランダムIndex = Int((終了行 - 開始行 + 1) * Rnd) + 開始行
+        If Not 使用済み.exists(ランダムIndex) Then
+            使用済み.Add ランダムIndex, True
+            テストシート.Cells(r + 1, 1).Value = r & ". " & 単語シート.Cells(ランダムIndex, 質問列).Value
+            答えシート.Cells(r + 1, 1).Value = r & ". " & 単語シート.Cells(ランダムIndex, 質問列).Value
+            答えシート.Cells(r + 1, 2).Value = 単語シート.Cells(ランダムIndex, 答え列).Value
+
+
+            r = r + 1
+        End If
+    Loop
+
+    ' タイトル行の設定（オプション）
+    テストシート.Cells(1, 1).EntireRow.Font.Bold = True
+    テストシート.Cells(1, 1).Value = "【" & 出題タイトル & "】"
+
+    答えシート.Cells(1, 1).Value = "問題"
+    答えシート.Cells(1, 2).Value = 答えタイトル
+    答えシート.Range("A1:B1").Font.Bold = True
+    テストシート.Columns("A:A").AutoFit
+    答えシート.Columns("A:B").AutoFit
+    MsgBox 出題数 & "問の「" & 出題タイトル & "」テストと答えを作成しました！", vbInformation
+End Sub
+
